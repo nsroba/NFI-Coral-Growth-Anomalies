@@ -1,0 +1,46 @@
+﻿Site,Transect,Colony Number,Colony Size,GA Number,Relief,Distribution,Location,Shape,Tissue,Polyp, WS
+SB,SB_02,6,M,1,nodular,focal,central,irregular,pale,absent,none
+SB,SB_02,8,M,1,exophytic,focal,peripheral,irregular,pale,enlarged ,none
+SB,SB_02,8,M,2,nodular,focal,central,irregular,pale,absent,none
+SB,SB_02,9,L,1,exophytic,multifocal to coalescing,peripheral,irregular,pale,enlarged ,tissue
+SB,SB_02,9,L,2,umbonate,focal,central,circular,pale,absent,none
+SB,SB_02,10,L,1,exophytic,focal,central,irregular,pale,reduced,none
+SB,SB_02,10,L,2,nodular,focal,central,irregular,pale,normal,none
+SB,SB_02,11,L,1,exophytic,diffuse,central,irregular,pale,enlarged ,none
+SB,SB_03,1,L,1,umbonate,focal,central,circular,absent,absent,none
+SB,SB_03,3,L,1,nodular,focal,central,irregular,absent,reduced,none
+SB,SB_03,3,L,2,umbonate,focal,central,oblong,absent,absent,none
+SB,SB_03,4,L,1,nodular,focal,central,circular,pale,reduced,none
+SB,SB_03,5,L,2,nodular,focal,central,irregular,pale,reduced,none
+SB,SB_04,9,M,1,nodular,focal,central,oblong,pale,reduced,none
+SB,SB_04,10,L,1,nodular,multifocal,central,irregular,pale,reduced,none
+SB,SB_04,10,L,2,exophytic,multifocal to coalescing,central,irregular,pale,reduced,skeleton
+SB,SB_08,1,L,1,exophytic,focal,central,circular,pale,reduced,none
+SB,SB_08,3,L,1,umbonate,multifocal,peripheral,oblong,pale,absent,tissue
+SB,SB_08,4,L,1,umbonate,multifocal,peripheral,irregular,pale,absent,none
+SB,SB_08,4,L,2,exophytic,focal,central,irregular,pale,enlarged ,none
+EB,EB_01,10,L,1,exophytic,focal,peripheral,irregular,healthy,enlarged ,none
+EB,EB_02,2,L,1,exophytic,multifocal,peripheral,irregular,pale,normal,none
+EB,EB_02,5,S,1,nodular,focal,central,irregular,pale,absent,none
+EB,EB_02,11,L,1,umbonate,focal,central,irregular,pale,absent,none
+EB,EB_04,1,L,1,exophytic,multifocal,peripheral,irregular,pale,enlarged ,none
+EB,EB_04,2,L,1,exophytic,multifocal,peripheral,irregular,pale,enlarged ,none
+EB,EB_04,2,L,2,exophytic,focal,central,irregular,pale,reduced,none
+EB,EB_04,4,L,1,exophytic,multifocal,peripheral,irregular,pale,enlarged ,none
+EB,EB_04,5,M,1,exophytic,multifocal,central,irregular,pale,enlarged ,none
+EB,EB_04,6,L,1,exophytic,focal,central,irregular,healthy,enlarged ,none
+EB,EB_04,6,L,2,exophytic,multifocal,central,irregular,pale,enlarged ,none
+EB,EB_04,7,L,1,exophytic,focal,peripheral,irregular,pale,reduced,none
+EB,EB_04,7,L,2,exophytic,multifocal,peripheral,irregular,healthy,enlarged ,none
+EB,EB_04,8,L,1,exophytic,diffuse,central,irregular,pale,enlarged ,none
+EB,EB_04,9,L,1,exophytic,diffuse,peripheral,irregular,pale,enlarged ,none
+EB,EB_06,2,L,1,nodular,multifocal,central,irregular,pale,reduced,none
+EB,EB_06,3,M,1,nodular,focal,central,irregular,healthy,reduced,none
+EB,EB_06,3,M,2,umbonate,focal,central,irregular,pale,reduced,none
+EB,EB_06,5,L,1,nodular,focal,central,circular,pale,enlarged ,none
+EB,EB_06,5,L,2,nodular,focal,central,irregular,healthy,normal,none
+EB,EB_07,8,L,1,umbonate,focal,central,circular,pale,absent,none
+EB,EB_07,8,L,2,exophytic,diffuse,peripheral,irregular,pale,enlarged ,skeleton
+EB,EB_08,2,L,1,exophytic,focal,central,irregular,pale,normal,none
+EB,EB_08,4,M,1,nodular,focal,central,irregular,pale,reduced,none
+EB,EB_08,7,L,1,exophytic,multifocal,peripheral,irregular,pale,reduced,none
