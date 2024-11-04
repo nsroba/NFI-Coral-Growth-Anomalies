@@ -12,29 +12,9 @@ editor_options:
 
 ```{r}
 library(tidyverse)
-library(ggmap)
-library(tidyr)
-library(dplyr)
-library(wesanderson)
-library(viridis)
-library(modelbased)
-library(performance)
-library(stats)
-library(EMT)
-library(forcats)
 library(ggplot2)
+library(gridExtra)
 library(RColorBrewer)
-library(lme4)
-library(DHARMa)
-library(car)
-library(lmerTest)
-library(effects)
-library(sjPlot)
-library(glmmTMB)
-library(ordinal)
-library(broom)
-library(knitr)
-library(RVAideMemoire)
 ```
 
 ### Dataset
@@ -337,7 +317,7 @@ y.ws <- filter(ws, WS.tissue == "Y" | Tissue.loss == "Y")
 # mean and SE for colonies with white syndrome AND growth anomalies
 y.ws.GA <- filter(y.ws, GA == "Y")
   mean_y.ws.GA <- nrow(y.ws.GA)/nrow(y.ws) * 100
-  se_y.ws.GAsqrt((mean_y.ws.GA*(100-mean_y.ws.GA))/nrow(y.ws))
+  se_y.ws.GAsqrt <- ((mean_y.ws.GA*(100-mean_y.ws.GA))/nrow(y.ws))
 
 # mean and SE for GA lesions occuring with white syndrome
 # 4 GAs had white symptoms - number derived from GA photos not dataset
