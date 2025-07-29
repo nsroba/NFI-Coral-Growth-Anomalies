@@ -1,0 +1,325 @@
+---
+title: "GA gross morphology"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: inline
+---
+
+## GA Gross Morphology
+
+### Load libraries
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(RColorBrewer)
+```
+
+### Dataset
+
+```{r}
+# morphology dataset
+morph <- read.csv("data/grossmorphredo.csv")
+
+# site dataset, for colony morph
+site <- read.csv("data/sites.csv")
+```
+
+### Grouping for unique GA morphotypes
+
+```{r}
+
+# find unique morphotypes based on GA relief, shape, polyp size and tissue pigmentation
+unique_morph <- morph %>%
+  group_by(Relief, Shape, Polyp, Tissue) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  arrange(desc(Count))
+
+# 15 unique morphotypes
+```
+
+### Relief - summary statistics
+
+```{r}
+# filter dataset
+relief <- select(morph, Relief)
+exo <- filter(relief, Relief == "exophytic")
+nod <- filter(relief, Relief == "nodular")
+umb <- filter(relief, Relief == "umbonate")
+
+# mean and standard error for each relief
+exo_mean <- nrow(exo)/nrow(relief) * 100
+  exo_SE <- sqrt((exo_mean/100) * (1 - (exo_mean/100))/nrow(relief)) * 100
+
+nod_mean <- nrow(nod)/nrow(relief) * 100
+  nod_SE <- sqrt((nod_mean/100) * (1 - (nod_mean/100))/nrow(relief)) * 100
+
+umb_mean <- nrow(umb)/nrow(relief) * 100
+  exo_SE <- sqrt((umb_mean/100) * (1 - (umb_mean/100))/nrow(relief)) * 100
+
+```
+
+### Distribution - summary statistics
+
+```{r}
+# filter dataset
+dis <- select(morph, Distribution)
+focal <- filter(dis, Distribution == "focal")
+multifoc <- filter(dis, Distribution == "multifocal")
+multicol <- filter(dis, Distribution == "multifocal to coalescing")
+diffuse <- filter(dis, Distribution == "diffuse")
+
+# mean and standard error
+focal_mean <- nrow(focal)/nrow(dis) * 100
+   focal_se <- sqrt((focal_mean/100) * (1 - (focal_mean/100))/nrow(dis)) * 100
+
+multifoc_mean <- nrow(multifoc)/nrow(dis) * 100
+  multifoc_se <- sqrt((multifoc_mean/100) * (1 - (multifoc_mean/100))/nrow(dis)) * 100
+
+multicol_mean <- nrow(multicol)/nrow(dis) * 100
+  multicol_se <- sqrt((multicol_mean/100) * (1 - (multicol_mean/100))/nrow(dis)) * 100
+
+diffuse_mean <- nrow(diffuse)/nrow(dis) * 100
+  diffuse_se <- sqrt((diffuse_mean/100) * (1 - (diffuse_mean/100))/nrow(dis)) * 100
+
+```
+
+### Location - summary statistics
+
+```{r}
+# filter dataset
+location <- select(morph, Location)
+cent <- filter(location, Location == "central")
+peri <- filter(location, Location == "peripheral")
+
+# mean and standard error
+cent_mean <- nrow(cent)/nrow(location) * 100
+  cent_SE <- sqrt((cent_mean/100) * (1 - (cent_mean/100))/nrow(location)) * 100
+
+peri_mean <- nrow(peri)/nrow(location) * 100
+  peri_SE <- sqrt((peri_mean/100) * (1 - (peri_mean/100))/nrow(location)) * 100
+```
+
+### Shape - summary statistics
+
+```{r}
+# filter dataset
+shape <- select(morph, Shape)
+ireg <- filter(shape, Shape == "irregular")
+circ <- filter(shape, Shape == "circular")
+ob <- filter(shape, Shape == "oblong")
+
+# mean and standard error
+ireg_mean <- nrow(ireg)/nrow(shape) * 100
+  ireg_SE <- sqrt((ireg_mean/100) * (1 - (ireg_mean/100))/nrow(shape)) * 100
+
+circ_mean <- nrow(circ)/nrow(shape) * 100
+  circ_SE <- sqrt((circ_mean/100) * (1 - (circ_mean/100))/nrow(shape)) * 100
+  
+ob_mean <- nrow(ob)/nrow(shape) * 100
+  ob_SE <- sqrt((ob_mean/100) * (1 - (ob_mean/100))/nrow(shape)) * 100
+```
+
+### Tissue Pigmentation - summary statistics
+
+```{r}
+# filter dataset
+tissue <- select(morph, Tissue)
+pale <- filter(tissue, Tissue == "pale")
+health <- filter(tissue, Tissue == "healthy")
+absent <- filter(tissue, Tissue == "absent")
+
+# mean and standard error
+pale_mean <- nrow(pale)/nrow(tissue) * 100
+  pale_SE <- sqrt((pale_SE/100) * (1 - (pale_SE/100))/nrow(tissue)) * 100
+  
+health_mean <- nrow(health)/nrow(tissue) * 100
+  health_SE <- sqrt((health_mean/100) * (1 - (health_mean/100))/nrow(tissue)) * 100
+  
+absent_mean <- nrow(absent)/nrow(tissue) * 100
+  absent_SE <- sqrt((absent_mean/100) * (1 - (absent_mean/100))/nrow(tissue)) * 100
+
+```
+
+### Polyp size - summary statistics
+
+```{r}
+# filter dataset
+polyp <- select(morph, Polyp)
+present <- filter(polyp, Polyp == "present")
+absent <- filter(polyp, Polyp == "absent")
+
+# mean and standard error
+present_mean <- nrow(present)/nrow(polyp) * 100
+  present_SE <- sqrt((present_mean/100) * (1 - (present_mean/100))/nrow(polyp)) * 100
+  
+absent_mean <- nrow(absent)/nrow(polyp) * 100
+  absent_SE <- sqrt((absent_mean/100) * (1 - (absent_mean/100))/nrow(polyp)) * 100
+```
+
+### Summary statistics table for morph
+
+```{r}
+# dataframe with all mean and SE of morph categories
+morph_meanSE <- data.frame(
+  Morphology = c("Polyp Size", "Polyp Size",
+               "Tissue Pigmentation", "Tissue Pigmentation", "Tissue Pigmentation",
+               "Shape", "Shape", "Shape",
+               "Location", "Location",
+               "Distribution", "Distribution", "Distribution", "Distribution",
+               "Relief", "Relief", "Relief"),
+  Category = c("present", "absent",
+               "pale", "healthy", "absent",
+               "irregular", "circular", "oblong",
+               "central", "peripheral",
+               "focal", "multifocal", "multifocal to colescing", "diffuse",
+               "exophytic", "nodular", "umbonate"),
+  Mean = c(present_mean, absent_mean,
+           pale_mean, health_mean, absent_mean,
+           ireg_mean, circ_mean, ob_mean,
+           cent_mean, peri_mean,
+           focal_mean, multifoc_mean, multicol_mean, diffuse_mean,
+           exo_mean, nod_mean, umb_mean),
+  Standard_error = c(present_SE, absent_SE,
+         pale_SE, health_SE, absent_SE,
+         ireg_SE, circ_SE, ob_SE,
+         cent_SE, peri_SE,
+         focal_se, multifoc_se, multicol_se, diffuse_se,
+         exo_SE, nod_SE, umb_SE))
+
+view(morph_meanSE)
+```
+
+### Bar charts for morphological characteristics
+
+```{r}
+# calculate counts
+long_data <- morph %>%
+  pivot_longer(
+    cols = c(Relief, Distribution, Location, Shape, Tissue, Polyp, WS),
+    names_to = "Variable",
+    values_to = "Category")
+
+morph_graph <- filter(long_data, Variable != "Colony.Size")
+counts <- morph_graph %>%
+  group_by(Variable, Category) %>%
+  summarise(Count = n()) %>%
+  ungroup()
+
+# Calculate percentages
+morph_graph <- counts %>%
+  group_by(Variable) %>%
+  mutate(Percentage = Count / sum(Count) * 100) %>%
+  arrange(Variable, Category) %>%
+  select(Variable, Category, Count, Percentage)
+
+morph_graph <- filter(morph_graph, Variable != "WS")
+morph_graph$Variable <- factor(morph_graph$Variable, levels = c("Symbiosis", "Polyp", "Shape", "Relief", "Distribution", "Location"))
+
+
+# location graph
+location <- filter(morph_graph, Variable == "Location")
+
+location_g <- ggplot(location, aes(x = Category, y = Percentage)) +
+  geom_col(position = position_dodge(width = 1.1), width = 0.8,
+           show.legend = FALSE,
+           colour = "black") +
+  ylim(0,100) +
+  theme_bw() +
+  labs(y = "Percentage of GA-affected Colonies (%)", x = "Location")
+
+# distribution graph
+distribution <- filter(morph_graph, Variable == "Distribution") %>%
+  arrange(desc(Percentage)) %>%
+  mutate(Category = factor(Category, levels = unique(Category)))
+
+dis_g <- ggplot(distribution, aes(x = Category, y = Percentage)) +
+  geom_col(position = position_dodge(width = 1.1), width = 0.8,
+           show.legend = FALSE,
+           colour = "black") +
+  ylim(0,100) +
+  theme_bw() +
+  labs(y = "Percentage of GA-affected Colonies (%)", x = "Distribution") 
+
+# relief graph
+relief <- filter(morph_graph, Variable == "Relief") %>%
+  arrange(desc(Percentage)) %>%
+  mutate(Category = factor(Category, levels = unique(Category)))
+
+relief_g <- ggplot(relief, aes(x = Category, y = Percentage)) +
+  geom_col(position = position_dodge(width = 1.1), width = 0.8,
+           show.legend = FALSE,
+           colour = "black") +
+  ylim(0,100) +
+  theme_bw() +
+  labs(y = "Percentage of GA-affected Colonies (%)", x = "Relief") 
+
+# shape graph
+shape <- filter(morph_graph, Variable == "Shape") %>%
+  arrange(desc(Percentage)) %>%
+  mutate(Category = factor(Category, levels = unique(Category)))
+
+shape_g <- ggplot(shape, aes(x = Category, y = Percentage)) +
+  geom_col(position = position_dodge(width = 1.1), width = 0.8,
+           show.legend = FALSE,
+           colour = "black") +
+  ylim(0,100) +
+  theme_bw() +
+  labs(y = "Percentage of GA-affected Colonies (%)", x = "Shape") 
+
+# polyp graph
+polyp <- filter(morph_graph, Variable == "Polyp") %>%
+  arrange(desc(Percentage)) %>%
+  mutate(Category = factor(Category, levels = unique(Category)))
+
+polyp_g <- ggplot(polyp, aes(x = Category, y = Percentage)) +
+  geom_col(position = position_dodge(width = 1.1), width = 0.8,
+           show.legend = FALSE,
+           colour = "black") +
+  ylim(0,100) +
+  theme_bw() +
+  labs(y = "Percentage of GA-affected Colonies (%)", x = "Polyp Size") 
+
+# tissue pigmenation graph
+tissue <- filter(morph_graph, Variable == "Symbiosis") %>%
+  arrange(desc(Percentage)) %>%
+  mutate(Category = factor(Category, levels = unique(Category)))
+
+tissue_g <- ggplot(tissue, aes(x = Category, y = Percentage)) +
+  geom_col(position = position_dodge(width = 1.1), width = 0.8,
+           show.legend = FALSE,
+           colour = "black") +
+  ylim(0,100) +
+  theme_bw() +
+  labs(y = "Percentage of GA-affected Colonies (%)", x = "Tissue Pigmentation") 
+
+# arrange graphs all together
+grid.arrange(location_g, dis_g, relief_g, shape_g, polyp_g, tissue_g, ncol = 2, nrow = 3)
+```
+
+### Colony morphologies - white syndrome and tissue pigmentation
+
+```{r}
+
+# white syndrome
+ws <- select(sites, Site, Size.Class, GA, WS.tissue, Tissue.loss)
+sites$Tissue.loss[31] <- "Y"
+
+# mean and SE for colonies with white syndrome
+y.ws <- filter(ws, WS.tissue == "Y" | Tissue.loss == "Y")
+  mean_y.ws <- nrow(y.ws)/nrow(ws) * 100
+  se_y.ws <- sqrt((mean_y.ws*(100-mean_y.ws))/nrow(ws))
+
+# mean and SE for colonies with white syndrome AND growth anomalies
+y.ws.GA <- filter(y.ws, GA == "Y")
+  mean_y.ws.GA <- nrow(y.ws.GA)/nrow(y.ws) * 100
+  se_y.ws.GAsqrt <- ((mean_y.ws.GA*(100-mean_y.ws.GA))/nrow(y.ws))
+
+# mean and SE for GA lesions occuring with white syndrome
+# 4 GAs had white symptoms - number derived from GA photos not dataset
+mean_interact <-  4/nrow(y.ws.GA) * 100
+  se_interact <- sqrt((mean_interact*(100-mean_interact))/nrow(y.ws.GA))
+
+```
