@@ -1,0 +1,308 @@
+---
+title: "GA Epidemiology"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## GA epidemiology
+
+### Load libraries
+
+```{r}
+
+library(tidyverse)    
+library(lme4)
+library(ordinal)
+library(DHARMa)
+library(effects)
+library(car)
+library(sjPlot)
+library(gridExtra)
+library(RVAideMemoire)
+```
+
+### Load in datasets
+
+```{r}
+# full site dataset
+transect <- read.csv("data/sites.csv")
+
+```
+
+### GA prevalence - summary statistics
+
+```{r}
+# mean and standard error of overall prevalence
+overall_Y <- filter(sites, GA == "Y")
+overallprev <- (nrow(mean_overall)/nrow(sites))*100
+overallprev_se <- sqrt((overallprev/100)*(1-(overallprev/100))/nrow(sites)) * 100
+
+# mean and standard error of prevalence for Emily Bay
+EB <- select(sites, Site, GA) %>%
+  filter(Site == "EB") 
+EB_Y <- filter(EB, GA == "Y") 
+
+prevEB_mean <- nrow(EB_Y)/nrow(EB) * 100
+prevEB_se <- sqrt((prevEB_mean/100)*(1-(prevEB_mean/100))/nrow(EB)) * 100
+
+# mean and standard error of prevalence for Slaughter Bay
+SB <- select(sites, Site, GA) %>%
+  filter(Site == "SB") 
+SB_Y <- filter(SB, GA == "Y") 
+
+prevSB_mean <- nrow(SB_Y)/nrow(SB) * 100
+prevSB_se <- sqrt((prevSB_mean/100)*(1-(prevSB_mean/100))/nrow(SB)) * 100
+```
+
+### GA colony size classes - summary statistics
+
+```{r}
+# create size class dataset
+size <- select(sites, GA, Size.Class) %>%
+  filter(GA == "Y")
+
+# mean and se of GA affected colony size classes
+GA_L <- filter(size, Size.Class == "L")
+  mean_GA_L <- (nrow(GA_L)/nrow(size)) *100
+  se_GA_L <- sqrt((mean_GA_L*(100-mean_GA_L))/nrow(size))
+
+GA_M <- filter(size, Size.Class == "M")
+  mean_GA_M <- (nrow(GA_M)/nrow(size)) *100
+  se_GA_M <- sqrt((mean_GA_M*(100-mean_GA_M))/nrow(size))
+
+GA_S <- filter(size, Size.Class == "S")
+  mean_GA_S <- (nrow(GA_S)/nrow(size)) *100
+  se_GA_S <- sqrt((mean_GA_S*(100-mean_GA_S))/nrow(size))
+```
+
+### GA occurrence
+
+```{r}
+# effect of site and size class on GA occurrence
+# create dataset
+size_site <- select(sites, Site, Transect, GA, Size.Class)
+size_site$GA <- ifelse(size_site$GA == "Y", 1, 0)
+
+# create glmm with binomial family and transect ID as random effect
+mod_size <- glmer(GA ~ Site + Size.Class + (1|Transect), 
+                  family = binomial(), data = size_site)
+
+# check residual normality and variance
+plot(simulateResiduals(mod_size)) # assumptions checked
+
+# test for significance, analysis of deviance type 3 
+Anova(mod_size, type = 3) # size class is significant
+
+# calculate the probability of GA occurrence given site and size class 
+# also used for post hoc testing
+allEffects(mod_size) %>% summary()
+
+# graph with 95% CI used to visualise significance between levels
+# Size Class plot
+plot_model(mod_size, type = "eff", terms = "Size.Class") +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  theme_bw() + 
+  labs(y ="Probability of Disease Occurence (%)") 
+
+# Site plot
+plot_model(mod_size, type = "eff", terms = "Site") + 
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  theme_bw() + 
+  labs(y ="Probability of Disease Occurence (%)")
+```
+
+### GA severity - summary statistics
+
+```{r}
+# create severity dataset
+sev <- filter(sites, GA == "Y") %>%
+  select(Site, Transect, Size.Class, Severity) 
+
+# mean severity and standard error across the whole lagoon
+sev_1 <- filter(sev, Severity == "1")
+    mean_sev_1 <- (nrow(sev_1)/nrow(sev)) *100
+    se_sev_1 <- sqrt((mean_sev_1*(100-mean_sev_1))/nrow(sev))
+    
+sev_2 <- filter(sev, Severity == "2")
+    mean_sev_2 <- (nrow(sev_2)/nrow(sev)) *100
+    se_sev_2 <- sqrt((mean_sev_2*(100-mean_sev_2))/nrow(sev))
+    
+sev_3 <- filter(sev, Severity == "3")
+    mean_sev_3 <- (nrow(sev_3)/nrow(sev)) *100
+    se_sev_3 <- sqrt((mean_sev_3*(100-mean_sev_3))/nrow(sev))
+    
+sev_4 <- filter(sev, Severity == "4")
+    mean_sev_4 <- (nrow(sev_4)/nrow(sev)) *100
+    se_sev_4 <- sqrt((mean_sev_4*(100-mean_sev_4))/nrow(sev))
+    
+sev_5 <- filter(sev, Severity == "5")
+    mean_sev_5 <- (nrow(sev_5)/nrow(sev)) *100
+    se_sev_5 <- sqrt((mean_sev_5*(100-mean_sev_5))/nrow(sev))
+
+# mean of sev per size class
+sev_S <- filter(sev, Size.Class == "S")
+sev_M <- filter(sev, Size.Class == "M")
+sev_L <- filter(sev, Size.Class == "L")
+
+sev_L_1 <- filter(sev_L, Severity == "1")
+    mean_sev_L_1 <- (nrow(sev_L_1)/nrow(sev_L)) *100
+    se_sev_L_1 <- sqrt((mean_sev_L_1*(100-mean_sev_L_1))/nrow(sev_L))
+
+sev_L_2 <- filter(sev_L, Severity == "2")
+    mean_sev_L_2 <- (nrow(sev_L_2)/nrow(sev_L)) *100
+    se_sev_L_2 <- sqrt((mean_sev_L_2 * (100 - mean_sev_L_2)) / nrow(sev_L))
+
+sev_L_3 <- filter(sev_L, Severity == "3")
+    mean_sev_L_3 <- (nrow(sev_L_3)/nrow(sev_L)) *100
+    se_sev_L_3 <- sqrt((mean_sev_L_3 * (100 - mean_sev_L_3)) / nrow(sev_L))
+    
+sev_L_4 <- filter(sev_L, Severity == "4")
+    mean_sev_L_4 <- (nrow(sev_L_4)/nrow(sev_L)) *100
+    se_sev_L_4 <- sqrt((mean_sev_L_4 * (100 - mean_sev_L_4)) / nrow(sev_L))
+
+sev_L_5 <- filter(sev_L, Severity == "5")
+    mean_sev_L_5 <- (nrow(sev_L_5)/nrow(sev_L)) *100
+    se_sev_L_5 <- sqrt((mean_sev_L_5 * (100 - mean_sev_L_5)) / nrow(sev_L))
+    
+# all small and medium colonies had a severity of level 1
+    
+# mean severity and standard error by site
+sev_EB <- filter(sev, Site == "EB")
+sev_SB <- filter(sev, Site == "SB")
+
+# Emily Bay
+sev_EB_1 <- filter(sev_EB, Severity == "1")
+  mean_sev_EB_1 <- (nrow(sev_EB_1) / nrow(sev_EB)) * 100
+  se_sev_EB_1 <- sqrt((mean_sev_EB_1 * (100 - mean_sev_EB_1)) / nrow(sev_EB))
+
+sev_EB_2 <- filter(sev_EB, Severity == "2")
+  mean_sev_EB_2 <- (nrow(sev_EB_2) / nrow(sev_EB)) * 100
+  se_sev_EB_2 <- sqrt((mean_sev_EB_2 * (100 - mean_sev_EB_2)) / nrow(sev_EB))
+
+sev_EB_3 <- filter(sev_EB, Severity == "3")
+  mean_sev_EB_3 <- (nrow(sev_EB_3) / nrow(sev_EB)) * 100
+  se_sev_EB_3 <- sqrt((mean_sev_EB_3 * (100 - mean_sev_EB_3)) / nrow(sev_EB))
+
+sev_EB_4 <- filter(sev_EB, Severity == "4")
+  mean_sev_EB_4 <- (nrow(sev_EB_4) / nrow(sev_EB)) * 100
+  se_sev_EB_4 <- sqrt((mean_sev_EB_4 * (100 - mean_sev_EB_4)) / nrow(sev_EB))
+
+sev_EB_5 <- filter(sev_EB, Severity == "5")
+  mean_sev_EB_5 <- (nrow(sev_EB_5) / nrow(sev_EB)) * 100
+  se_sev_EB_5 <- sqrt((mean_sev_EB_5 * (100 - mean_sev_EB_5)) / nrow(sev_EB))
+  
+# slaughter bay
+sev_SB_1 <- filter(sev_SB, Severity == "1")
+  mean_sev_SB_1 <- (nrow(sev_SB_1) / nrow(sev_SB)) * 100
+  se_sev_SB_1 <- sqrt((mean_sev_SB_1 * (100 - mean_sev_SB_1)) / nrow(sev_SB))
+
+sev_SB_2 <- filter(sev_SB, Severity == "2")
+  mean_sev_SB_2 <- (nrow(sev_SB_2) / nrow(sev_SB)) * 100
+  se_sev_SB_2 <- sqrt((mean_sev_SB_2 * (100 - mean_sev_SB_2)) / nrow(sev_SB))
+
+sev_SB_3 <- filter(sev_SB, Severity == "3")
+  mean_sev_SB_3 <- (nrow(sev_SB_3) / nrow(sev_SB)) * 100
+  se_sev_SB_3 <- sqrt((mean_sev_SB_3 * (100 - mean_sev_SB_3)) / nrow(sev_SB))
+
+sev_SB_4 <- filter(sev_SB, Severity == "4")
+  mean_sev_SB_4 <- (nrow(sev_SB_4) / nrow(sev_SB)) * 100
+  se_sev_SB_4 <- sqrt((mean_sev_SB_4 * (100 - mean_sev_SB_4)) / nrow(sev_SB))
+
+sev_SB_5 <- filter(sev_SB, Severity == "5")
+  mean_sev_SB_5 <- (nrow(sev_SB_5) / nrow(sev_SB)) * 100
+  se_sev_SB_5 <- sqrt((mean_sev_SB_5 * (100 - mean_sev_SB_5)) / nrow(sev_SB))
+  
+# graphical output
+site <- ggplot(sev, aes(x = Severity, fill = Site)) +
+  geom_bar(width = 0.8, colour = "black") +
+  ylim(0,15)+
+  labs(x = "GA Severity Level", y = "Number of GA-affected Colonies") +
+  theme_bw()
+
+# severity by size
+size <- ggplot(sev, aes(x = Severity, fill = Size.Class))  +
+  geom_bar(width = 0.8, colour = "black") +
+  ylim(0,15)+
+  labs(x = "GA Severity Level", y = "Number of GA-affected Colonies") +
+  theme_bw()
+
+grid.arrange(site, size, ncol = 2, nrow = 1)
+```
+
+### GA Severity - test
+
+```{r}
+sev$Severity <- as.factor(sev$Severity)
+
+# effect of size class and site on GA severity
+# cumulative linear mixed model (for ordinal data) fit with transect ID as a random effect
+mod_sev <- clmm(Severity ~ Size.Class + Site + (1|Transect), data=sev) 
+
+# error message from model - Hessian is numerically singular
+# check for low sample sizes
+table(sev$Size.Class, sev$Severity) # sample sizes of zero between some levels
+table(sev$Site, sev$Severity)
+
+# remove size class from model
+mod_sev_fixed <- clmm(Severity ~ Site + (1|Transect), data=sev) 
+
+# check proportional odds assumption
+# create datasets for logistic models
+sev_check <- sev %>%
+  mutate(
+    Severity_level1 = ifelse(Severity <= 1, 1, 0),
+    Severity_level2 = ifelse(Severity <= 2, 1, 0),
+    Severity_level3 = ifelse(Severity <= 3, 1, 0),
+    Severity_level4 = ifelse(Severity <= 4, 1, 0)
+  )
+
+# create logisitc models
+mod1 <- glmer(Severity_level1 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+mod2 <- glmer(Severity_level2 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+mod3 <- glmer(Severity_level3 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+mod4 <- glmer(Severity_level4 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+
+# extract estimates
+mod1est <- fixef(mod1) 
+mod2est <- fixef(mod2) 
+mod3est <- fixef(mod3) 
+mod4est <- fixef(mod4) 
+
+# extract coefficients
+mod1conf <- confint(mod1, method = "Wald")[!rownames(confint(mod1, method = "Wald")) %in% ".sig01", ]
+mod2conf <- confint(mod2, method = "Wald")[!rownames(confint(mod2, method = "Wald")) %in% ".sig01", ]
+mod3conf <- confint(mod3, method = "Wald")[!rownames(confint(mod3, method = "Wald")) %in% ".sig01", ]
+mod4conf <- confint(mod4, method = "Wald")[!rownames(confint(mod4, method = "Wald")) %in% ".sig01", ]
+
+# create dataframe to plot CI and estimates
+plot_data <- data.frame(
+  Model = rep(c("Model 1", "Model 2", "Model 3", "Model 4"), each = length(mod1est)),
+  Term = rep(names(mod1est), times = 4),  # Assuming terms are the same for all models
+  Estimate = c(mod1est, mod2est, mod3est, mod4est),
+  Conf.Lower = c(mod1conf[, 1], mod2conf[, 1], mod3conf[, 1], mod4conf[, 1]),
+  Conf.Upper = c(mod1conf[, 2], mod2conf[, 2], mod3conf[, 2], mod4conf[, 2])
+)
+
+# Remove the intercept and fixed effects
+plot_data <- plot_data %>%
+  filter(!Term %in% c("(Intercept)", "fixed_effect_term")) 
+
+# Create the plot
+ggplot(plot_data, aes(x = Model, y = Estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = Conf.Lower, ymax = Conf.Upper), width = 0.2) +
+  labs(x = "Model", y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# similarity is evident between logisitic model, so assumption is fine
+
+# test for significance
+Anova.clmm(mod_sev_fixed)
+```
