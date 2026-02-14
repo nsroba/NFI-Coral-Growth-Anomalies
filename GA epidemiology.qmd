@@ -1,0 +1,616 @@
+---
+title: "GA Epidemiology"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+### Load libraries
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(lme4)
+library(ordinal)
+library(DHARMa)
+library(effects)
+library(car)
+library(sjPlot)
+library(gridExtra)
+library(RVAideMemoire)
+library(viridis)
+library(sf)
+library(spatstat)
+```
+
+### Load in datasets
+
+```{r}
+# full site dataset
+transect <- read.csv("data/sites.csv")
+
+```
+
+### GA prevalence - summary statistics
+
+```{r}
+# mean and standard error of overall prevalence
+overall_Y <- filter(sites, GA == "Y")
+overallprev <- (nrow(mean_overall)/nrow(sites))*100
+overallprev_se <- sqrt((overallprev/100)*(1-(overallprev/100))/nrow(sites)) * 100
+
+# mean and standard error of prevalence for Emily Bay
+EB <- select(sites, Site, GA) %>%
+  filter(Site == "EB") 
+EB_Y <- filter(EB, GA == "Y") 
+
+prevEB_mean <- nrow(EB_Y)/nrow(EB) * 100
+prevEB_se <- sqrt((prevEB_mean/100)*(1-(prevEB_mean/100))/nrow(EB)) * 100
+
+# mean and standard error of prevalence for Slaughter Bay
+SB <- select(sites, Site, GA) %>%
+  filter(Site == "SB") 
+SB_Y <- filter(SB, GA == "Y") 
+
+prevSB_mean <- nrow(SB_Y)/nrow(SB) * 100
+prevSB_se <- sqrt((prevSB_mean/100)*(1-(prevSB_mean/100))/nrow(SB)) * 100
+```
+
+### GA colony size classes - summary statistics
+
+```{r}
+# create size class dataset
+size <- select(sites, GA, Size.Class) %>%
+  filter(GA == "Y")
+
+# mean and se of GA affected colony size classes
+GA_L <- filter(size, Size.Class == "L")
+  mean_GA_L <- (nrow(GA_L)/nrow(size)) *100
+  se_GA_L <- sqrt((mean_GA_L*(100-mean_GA_L))/nrow(size))
+
+GA_M <- filter(size, Size.Class == "M")
+  mean_GA_M <- (nrow(GA_M)/nrow(size)) *100
+  se_GA_M <- sqrt((mean_GA_M*(100-mean_GA_M))/nrow(size))
+
+GA_S <- filter(size, Size.Class == "S")
+  mean_GA_S <- (nrow(GA_S)/nrow(size)) *100
+  se_GA_S <- sqrt((mean_GA_S*(100-mean_GA_S))/nrow(size))
+```
+
+### GA occurrence
+
+```{r}
+# effect of site and size class on GA occurrence
+# create dataset
+size_site <- select(sites, Site, Transect, GA, Size.Class)
+size_site$GA <- ifelse(size_site$GA == "Y", 1, 0)
+
+# create glmm with binomial family and transect ID as random effect
+mod_size <- glmer(GA ~ Site + Size.Class + (1|Transect), 
+                  family = binomial(), data = size_site)
+
+# check residual normality and variance
+plot(simulateResiduals(mod_size)) # assumptions checked
+
+# test for significance, analysis of deviance type 3 
+Anova(mod_size, type = 3) # size class is significant
+
+# calculate the probability of GA occurrence given site and size class 
+# also used for post hoc testing
+allEffects(mod_size) %>% summary()
+
+# graph with 95% CI used to visualise significance between levels
+# Size Class plot
+plot_model(mod_size, type = "eff", terms = "Size.Class") +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  theme_bw() + 
+  labs(y ="Probability of Disease Occurence (%)") 
+
+# Site plot
+plot_model(mod_size, type = "eff", terms = "Site") + 
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  theme_bw() + 
+  labs(y ="Probability of Disease Occurence (%)")
+```
+
+### GA severity - summary statistics
+
+```{r}
+# create severity dataset
+sev <- filter(sites, GA == "Y") %>%
+  select(Site, Transect, Size.Class, Severity) 
+
+# mean severity and standard error across the whole lagoon
+sev_1 <- filter(sev, Severity == "1")
+    mean_sev_1 <- (nrow(sev_1)/nrow(sev)) *100
+    se_sev_1 <- sqrt((mean_sev_1*(100-mean_sev_1))/nrow(sev))
+    
+sev_2 <- filter(sev, Severity == "2")
+    mean_sev_2 <- (nrow(sev_2)/nrow(sev)) *100
+    se_sev_2 <- sqrt((mean_sev_2*(100-mean_sev_2))/nrow(sev))
+    
+sev_3 <- filter(sev, Severity == "3")
+    mean_sev_3 <- (nrow(sev_3)/nrow(sev)) *100
+    se_sev_3 <- sqrt((mean_sev_3*(100-mean_sev_3))/nrow(sev))
+    
+sev_4 <- filter(sev, Severity == "4")
+    mean_sev_4 <- (nrow(sev_4)/nrow(sev)) *100
+    se_sev_4 <- sqrt((mean_sev_4*(100-mean_sev_4))/nrow(sev))
+    
+sev_5 <- filter(sev, Severity == "5")
+    mean_sev_5 <- (nrow(sev_5)/nrow(sev)) *100
+    se_sev_5 <- sqrt((mean_sev_5*(100-mean_sev_5))/nrow(sev))
+
+# mean of sev per size class
+sev_S <- filter(sev, Size.Class == "S")
+sev_M <- filter(sev, Size.Class == "M")
+sev_L <- filter(sev, Size.Class == "L")
+
+sev_L_1 <- filter(sev_L, Severity == "1")
+    mean_sev_L_1 <- (nrow(sev_L_1)/nrow(sev_L)) *100
+    se_sev_L_1 <- sqrt((mean_sev_L_1*(100-mean_sev_L_1))/nrow(sev_L))
+
+sev_L_2 <- filter(sev_L, Severity == "2")
+    mean_sev_L_2 <- (nrow(sev_L_2)/nrow(sev_L)) *100
+    se_sev_L_2 <- sqrt((mean_sev_L_2 * (100 - mean_sev_L_2)) / nrow(sev_L))
+
+sev_L_3 <- filter(sev_L, Severity == "3")
+    mean_sev_L_3 <- (nrow(sev_L_3)/nrow(sev_L)) *100
+    se_sev_L_3 <- sqrt((mean_sev_L_3 * (100 - mean_sev_L_3)) / nrow(sev_L))
+    
+sev_L_4 <- filter(sev_L, Severity == "4")
+    mean_sev_L_4 <- (nrow(sev_L_4)/nrow(sev_L)) *100
+    se_sev_L_4 <- sqrt((mean_sev_L_4 * (100 - mean_sev_L_4)) / nrow(sev_L))
+
+sev_L_5 <- filter(sev_L, Severity == "5")
+    mean_sev_L_5 <- (nrow(sev_L_5)/nrow(sev_L)) *100
+    se_sev_L_5 <- sqrt((mean_sev_L_5 * (100 - mean_sev_L_5)) / nrow(sev_L))
+    
+# all small and medium colonies had a severity of level 1
+    
+# mean severity and standard error by site
+sev_EB <- filter(sev, Site == "EB")
+sev_SB <- filter(sev, Site == "SB")
+
+# Emily Bay
+sev_EB_1 <- filter(sev_EB, Severity == "1")
+  mean_sev_EB_1 <- (nrow(sev_EB_1) / nrow(sev_EB)) * 100
+  se_sev_EB_1 <- sqrt((mean_sev_EB_1 * (100 - mean_sev_EB_1)) / nrow(sev_EB))
+
+sev_EB_2 <- filter(sev_EB, Severity == "2")
+  mean_sev_EB_2 <- (nrow(sev_EB_2) / nrow(sev_EB)) * 100
+  se_sev_EB_2 <- sqrt((mean_sev_EB_2 * (100 - mean_sev_EB_2)) / nrow(sev_EB))
+
+sev_EB_3 <- filter(sev_EB, Severity == "3")
+  mean_sev_EB_3 <- (nrow(sev_EB_3) / nrow(sev_EB)) * 100
+  se_sev_EB_3 <- sqrt((mean_sev_EB_3 * (100 - mean_sev_EB_3)) / nrow(sev_EB))
+
+sev_EB_4 <- filter(sev_EB, Severity == "4")
+  mean_sev_EB_4 <- (nrow(sev_EB_4) / nrow(sev_EB)) * 100
+  se_sev_EB_4 <- sqrt((mean_sev_EB_4 * (100 - mean_sev_EB_4)) / nrow(sev_EB))
+
+sev_EB_5 <- filter(sev_EB, Severity == "5")
+  mean_sev_EB_5 <- (nrow(sev_EB_5) / nrow(sev_EB)) * 100
+  se_sev_EB_5 <- sqrt((mean_sev_EB_5 * (100 - mean_sev_EB_5)) / nrow(sev_EB))
+  
+# slaughter bay
+sev_SB_1 <- filter(sev_SB, Severity == "1")
+  mean_sev_SB_1 <- (nrow(sev_SB_1) / nrow(sev_SB)) * 100
+  se_sev_SB_1 <- sqrt((mean_sev_SB_1 * (100 - mean_sev_SB_1)) / nrow(sev_SB))
+
+sev_SB_2 <- filter(sev_SB, Severity == "2")
+  mean_sev_SB_2 <- (nrow(sev_SB_2) / nrow(sev_SB)) * 100
+  se_sev_SB_2 <- sqrt((mean_sev_SB_2 * (100 - mean_sev_SB_2)) / nrow(sev_SB))
+
+sev_SB_3 <- filter(sev_SB, Severity == "3")
+  mean_sev_SB_3 <- (nrow(sev_SB_3) / nrow(sev_SB)) * 100
+  se_sev_SB_3 <- sqrt((mean_sev_SB_3 * (100 - mean_sev_SB_3)) / nrow(sev_SB))
+
+sev_SB_4 <- filter(sev_SB, Severity == "4")
+  mean_sev_SB_4 <- (nrow(sev_SB_4) / nrow(sev_SB)) * 100
+  se_sev_SB_4 <- sqrt((mean_sev_SB_4 * (100 - mean_sev_SB_4)) / nrow(sev_SB))
+
+sev_SB_5 <- filter(sev_SB, Severity == "5")
+  mean_sev_SB_5 <- (nrow(sev_SB_5) / nrow(sev_SB)) * 100
+  se_sev_SB_5 <- sqrt((mean_sev_SB_5 * (100 - mean_sev_SB_5)) / nrow(sev_SB))
+  
+# graphical output
+site <- ggplot(sev, aes(x = Severity, fill = Site)) +
+  geom_bar(width = 0.8, colour = "black") +
+  ylim(0,15)+
+  labs(x = "GA Severity Level", y = "Number of GA-affected Colonies") +
+  theme_bw()
+
+# severity by size
+size <- ggplot(sev, aes(x = Severity, fill = Size.Class))  +
+  geom_bar(width = 0.8, colour = "black") +
+  ylim(0,15)+
+  labs(x = "GA Severity Level", y = "Number of GA-affected Colonies") +
+  theme_bw()
+
+grid.arrange(site, size, ncol = 2, nrow = 1)
+```
+
+### GA Severity - test
+
+```{r}
+sev$Severity <- as.factor(sev$Severity)
+
+# effect of size class and site on GA severity
+# cumulative linear mixed model (for ordinal data) fit with transect ID as a random effect
+mod_sev <- clmm(Severity ~ Size.Class + Site + (1|Transect), data=sev) 
+
+# error message from model - Hessian is numerically singular
+# check for low sample sizes
+table(sev$Size.Class, sev$Severity) # sample sizes of zero between some levels
+table(sev$Site, sev$Severity)
+
+# remove size class from model
+mod_sev_fixed <- clmm(Severity ~ Site + (1|Transect), data=sev) 
+
+# check proportional odds assumption
+# create datasets for logistic models
+sev_check <- sev %>%
+  mutate(
+    Severity_level1 = ifelse(Severity <= 1, 1, 0),
+    Severity_level2 = ifelse(Severity <= 2, 1, 0),
+    Severity_level3 = ifelse(Severity <= 3, 1, 0),
+    Severity_level4 = ifelse(Severity <= 4, 1, 0)
+  )
+
+# create logisitc models
+mod1 <- glmer(Severity_level1 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+mod2 <- glmer(Severity_level2 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+mod3 <- glmer(Severity_level3 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+mod4 <- glmer(Severity_level4 ~ Site + (1 | Transect), data = data, 
+              family = binomial)
+
+# extract estimates
+mod1est <- fixef(mod1) 
+mod2est <- fixef(mod2) 
+mod3est <- fixef(mod3) 
+mod4est <- fixef(mod4) 
+
+# extract coefficients
+mod1conf <- confint(mod1, method = "Wald")[!rownames(confint(mod1, method = "Wald")) %in% ".sig01", ]
+mod2conf <- confint(mod2, method = "Wald")[!rownames(confint(mod2, method = "Wald")) %in% ".sig01", ]
+mod3conf <- confint(mod3, method = "Wald")[!rownames(confint(mod3, method = "Wald")) %in% ".sig01", ]
+mod4conf <- confint(mod4, method = "Wald")[!rownames(confint(mod4, method = "Wald")) %in% ".sig01", ]
+
+# create dataframe to plot CI and estimates
+plot_data <- data.frame(
+  Model = rep(c("Model 1", "Model 2", "Model 3", "Model 4"), each = length(mod1est)),
+  Term = rep(names(mod1est), times = 4),  # Assuming terms are the same for all models
+  Estimate = c(mod1est, mod2est, mod3est, mod4est),
+  Conf.Lower = c(mod1conf[, 1], mod2conf[, 1], mod3conf[, 1], mod4conf[, 1]),
+  Conf.Upper = c(mod1conf[, 2], mod2conf[, 2], mod3conf[, 2], mod4conf[, 2])
+)
+
+# Remove the intercept and fixed effects
+plot_data <- plot_data %>%
+  filter(!Term %in% c("(Intercept)", "fixed_effect_term")) 
+
+# Create the plot
+ggplot(plot_data, aes(x = Model, y = Estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = Conf.Lower, ymax = Conf.Upper), width = 0.2) +
+  labs(x = "Model", y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# similarity is evident between logisitic model, so assumption is fine
+
+# test for significance
+Anova.clmm(mod_sev_fixed)
+```
+
+## Spatial Ecology
+
+### Plot of surveyed population
+
+```{r}
+transect_plot <- select(transect, Longitude, Latitude)
+points_sp <- SpatialPoints(transect_plot)
+
+# create colour dataset for different transects
+unique_transects <- unique(transect$Transect)
+transect_colors <- viridis(length(unique_transects))
+# create a  vector of colours based on transect
+transect_color_map <- setNames(transect_colors, unique_transects)
+# map transect colours to each point
+point_colors <- transect_color_map[transect$Transect]
+
+transect_color_map <- c("Y" = "red", "N" = "lightblue")
+# Map the GA status to point colors
+point_colors <- transect_color_map[transect$GA]
+
+# Plot the points
+plot(points_sp, bg = point_colors, pch = 21, cex = 1.3,
+     #xlim = c(787700, 788530), ylim = c(6781500, 6781950),
+     # add longitude and latitude
+     axes = TRUE, xlab = "Longitude", ylab = "Latitude" , asp = 1)
+     lines(boundary$Longitude, boundary$Latitude, col = "black", lwd = 2) 
+```
+
+### Convert to UTM
+
+```{r}
+pres <- transect
+# Convert coordinates to UTM ###################################################
+
+# Convert pres to a SpatialPoints object
+pres_sp <- SpatialPointsDataFrame(coords = pres[, c("Longitude", "Latitude")], data = pres)
+
+# Convert pres_sp to sf object
+pres_sf <- st_as_sf(pres_sp)
+
+# Set the current projection to long/lat
+st_crs(pres_sf) <- st_crs("+proj=longlat +datum=WGS84")
+
+# Project onto UTM (UTM zone selection)
+# Note: Select zone based on your specific requirement, here using zone 56 for example
+utm_zone <- "+proj=utm +zone=58 +south +ellps=WGS84"
+pres_utm <- st_transform(pres_sf, crs = utm_zone)
+
+# Convert the transformed data back to a data frame
+pres_utm_df <- st_coordinates(pres_utm)
+colnames(pres_utm_df) <- c("x", "y")
+
+# convert the domain data back into a data frame
+pres <- as.data.frame(pres)
+
+transect <- cbind(pres, pres_utm_df)
+
+```
+
+### Create point datasets
+
+```{r}
+# DISEASED
+# filter data set
+ripley_GA = select(transect, x, y, Transect, GA) %>%
+  filter(GA == "Y") 
+
+# convert data to class PPP - spatial point pattern
+xrange <- range(ripley_GA$x)
+yrange <- range(ripley_GA$y)
+# define the window using owin()
+window <- owin(xrange, yrange)
+# convert to ppp
+ripley_GAppp <- ppp(x = ripley_GA$x, y = ripley_GA$y, window = window)
+
+# UNDERLYING CORAL POP
+# define dataset
+ripley_pop = select(transect, x, y, Transect, GA)
+
+# convert data to class PPP - spatial point pattern
+xrange <- range(ripley_pop$x)
+yrange <- range(ripley_pop$y)
+# define the window using owin()
+window1 <- owin(xrange, yrange)
+# Convert to ppp
+ripley_coralppp <- ppp(x = ripley_pop$x, y = ripley_pop$y, window = window1)
+```
+
+### Distances b/w diseased and healthy colonies
+
+```{r}
+
+# calculate distance between colony pairs WITHIN transects
+calculate_distances <- function(data, transect) {
+  euc_dist <- data %>%
+    filter(Transect == transect) %>%
+    select(x, y) %>%
+    dist(method = "euclidean") %>%
+    as.matrix()
+  euc_dist <- euc_dist[upper.tri(euc_dist)]
+  data.frame(Value = euc_dist)
+}
+
+# diseased dataset
+GA <- transect %>%
+  filter(GA == "Y") %>%
+  select(Transect, x, y)
+
+# healthy dataset
+HLT <- transect %>%
+  filter(GA == "N") %>%
+  select(Transect, x, y)
+
+# ALL colonies
+ALL <- transect %>%
+  select(Transect, x, y)
+
+# List of transects for each category
+transects_SB <- c("SB_02", "SB_03", "SB_04", "SB_07", "SB_08", "SB_10", "SB_11")
+transects_EB <- c("EB_01", "EB_02", "EB_04", "EB_05", "EB_06", "EB_07", "EB_08")
+transects <- c(transects_SB, transects_EB)
+
+# Calculate distances for healthy colonies
+combined_HLT <- do.call(rbind, lapply(transects, function(transect) {
+  calculate_distances(HLT, transect)
+}))
+
+# Calculate distances for diseased colonies
+combined_GA <- do.call(rbind, lapply(transects, function(transect) {
+  calculate_distances(GA, transect)
+}))
+
+# Calculate distances for all colonies
+combined_ALL <- do.call(rbind, lapply(transects, function(transect) {
+  calculate_distances(ALL, transect)
+}))
+
+# Combine diseased and all colonies data frames
+combined_GA <- data.frame(distance = combined_GA$Value, group = "GA colonies")
+combined_ALL <- data.frame(distance = combined_ALL$Value, group = "All colonies")
+combined_df <- rbind(combined_GA, combined_ALL)
+
+# mean and standard error of distances for each population group
+mean(combined_GA$distance)
+sd_GA <- sd(combined_GA$distance)
+sd_GA / sqrt(nrow(combined_GA))
+
+mean(combined_ALL$distance)
+sd_ALL <- sd(combined_ALL$distance)
+sd_ALL / sqrt(nrow(combined_ALL))
+```
+
+### Distance b/w colonies GRAPH
+
+```{r}
+# frequency graph
+# Bin distances into intervals
+# number of bins, sqrt(n) rule
+sqrt(678)
+bins <- seq(0.1476, 30.3104, length.out = 26)  
+
+# Create data frames with binned frequencies for euc_GA
+euc_GA_freq <- combined_GA %>%
+  mutate(interval = cut(distance, breaks = bins, include.lowest = TRUE, right = TRUE)) %>%
+  group_by(interval) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100,
+         group = "GA Colonies")
+
+
+# Create data frames with binned frequencies for euc_ALL
+euc_ALL_freq <- combined_ALL %>%
+  mutate(interval = cut(distance, breaks = bins, include.lowest = TRUE, right = TRUE)) %>%
+  group_by(interval) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100,
+         group = "All Colonies")
+
+# Combine data frames
+combined_freq <- rbind(euc_GA_freq, euc_ALL_freq) %>%
+  na.omit()
+combined_freq <- combined_freq %>%
+  mutate(interval = factor(interval, levels = sort(unique(interval)))) 
+
+# Plot bar graph
+ggplot(data = combined_freq, aes(x = interval, y = percentage, fill = group)) +
+  geom_col(position = position_dodge(0.9), width = 0.8) +
+  labs(x = "Distance Interval (m)", y = "Frequency (%)") +
+  scale_fill_manual(values = c("All Colonies" = "#87BBDD", "GA Colonies" = "red"))+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) 
+```
+
+### Test to Compare distribution b/w diseased and underlying populations
+
+```{r}
+# extract distances ONLY
+test_GA <- combined_GA$distance
+test_ALL <- combined_ALL$distance
+
+# run Kolmogorov-Smirnov test
+# is the cumulative distribution function of GA greater than ALL
+ks.test(test_GA, test_ALL, alternative = "greater")
+
+```
+
+### Inhomogeneous Ripley K with intensity
+
+```{r}
+# select the appropriate bandwidth
+bw <- bw.scott(ripley_coralppp)
+# calculate the intensity of the underlying coral population
+lambda0 <- density.ppp(ripley_coralppp, bw)
+
+# calculate the ratio of diseased to underlying colony numbers (control)
+num_diseased <- nrow(filter(transect, transect$GA == "Y"))
+num_controls <- nrow(transect)
+ratio <- num_diseased / num_controls
+
+# calculate the intensity of the diseased population
+lambda1 <- lambda0 * ratio
+
+# calculate the inhomogeneous K function for the underlying coral population
+kh_underlying <- Kinhom(ripley_coralppp, lambda = lambda0)
+# calculate the inhomogeneous K function for the diseased population
+kh_GA <- Kinhom(ripley_GAppp, lambda = lambda1)
+
+# calculate the inhomogenous K function of the diseased pop independent to the underlying
+compare_observed <- kh_GA$iso - kh_underlying$iso
+compare_theo <- kh_GA$theo - kh_underlying$theo
+
+# set number of iterations for loop
+niter <- 99
+
+# create empty matrices for simulation envelopes
+# rows = number of distances used to estimate the K-function
+# columns = number of iterations
+kh_underlying_sim <- matrix(NA, nrow = length(kh_underlying$r), ncol = niter)
+kh_GA_sim <- matrix(NA, nrow = length(kh_GA$r), ncol = niter)
+kh_GA_sim_r <- matrix(NA, nrow = length(kh_GA$r), ncol = niter)
+kh_compare_sim <- matrix(NA, nrow = length(compare_observed), ncol = niter)
+
+# simulation with 99 iterations
+for (i in 1:niter) {
+  
+  # randomly sample for diseased colonies
+  samp <- as.data.frame(sample(transect$GA))
+  # get the rows that correspond to diseased colonies
+  id_GAsim <- which(samp == "Y")
+  # get the coordinates of the randomly sampled diseased colonies
+  GA_coords <- transect[id_GAsim, c("x", "y")]
+  
+  # convert to PPP
+  xrangeGA <- range(GA_coords$x)
+  yrangeGA <- range(GA_coords$y)
+  window_GA <- owin(xrangeGA, yrangeGA)
+  sim_GA <- ppp(x = GA_coords$x, y = GA_coords$y, window = window_GA)
+
+  # calculate the ratio
+  num_diseased <- length(id_GAsim)
+  num_controls <- nrow(transect)
+  ratio <- num_diseased / num_controls
+  
+  # calculate K-function and store the results
+  kh_GA_sim[, i] <- Kinhom(sim_GA, lambda = lambda0 * ratio)$iso
+  kh_GA_sim_r[, i] <- Kinhom(sim_GA, lambda = lambda0 * ratio)$r
+}
+
+# GRAPH OF DISEASED POP
+plot(kh_GA$r, kh_GA$iso, type = "l", col='blue', 
+    # set x/y limits
+    ylim = range(c(K_GA_lower, K_GA_upper, kh_GA$iso)),
+    xlab = "Distance (m)", ylab = "Kinhom(r)" , main = "Inhomogeneous Ripley K of Diseased Population") 
+  # line for theoretical population
+  # changing this from kh_GA$theo to the mean of the simulated pop
+  lines(kh_GA$r, mean_kh_GA, col ="black", lty = 1) 
+  # line for confidence interval
+  lines(kh_GA$r, K_GA_upper, col = "gray40", lty = 2) 
+  lines(kh_GA$r, K_GA_lower, col = "gray40", lty = 2) 
+  # shade in confidence interval
+  polygon(c(kh_GA$r, rev(kh_GA$r)), c(K_GA_upper, rev(K_GA_lower)), 
+            col=rgb(0.5,0.5,0.5,alpha = 0.2), border = NA)
+  polygon(c(kh_GA$r, rev(kh_GA$r)),
+          c(pmax(kh_GA$iso, K_GA_upper), rev(K_GA_upper)),
+          col = rgb(0, 0, 1, alpha = 0.2), border = NA)
+  
+# zooming in for TRANSECT LEVEL ONLY
+# GRAPH OF DISEASED POP
+plot(kh_GA$r, kh_GA$iso, type = "l", col='red', 
+    # set x/y limits
+    ylim = c(0,5000),
+    xlim = c(0,20),
+    xlab = "Distance between GA affected colonies (m)", ylab = "K(r)") 
+  # line for theoretical population
+  # changing this from kh_GA$theo to the mean of the simulated pop
+  lines(kh_GA$r, mean_kh_GA, col ="black", lty = 1) 
+  # line for confidence interval
+  lines(kh_GA$r, K_GA_upper, col = "gray40", lty = 2) 
+  lines(kh_GA$r, K_GA_lower, col = "gray40", lty = 2) 
+  # shade in confidence interval
+  polygon(c(kh_GA$r, rev(kh_GA$r)), c(K_GA_upper, rev(K_GA_lower)), 
+            col=rgb(0.5,0.5,0.5,alpha = 0.2), border = NA)
+  polygon(c(kh_GA$r, rev(kh_GA$r)),
+          c(pmax(kh_GA$iso, K_GA_upper), rev(K_GA_upper)),
+          col=rgb(1, 0, 0, alpha = 0.4), border = NA)
+```
